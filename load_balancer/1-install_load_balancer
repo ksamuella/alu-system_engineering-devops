@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+# Installs and configures HAProxy (roundrobin) for web-01 and web-02
+WEB01_IP="WEB01_IP_HERE"
+WEB02_IP="WEB02_IP_HERE"
+
+sudo apt-get -y update
+sudo apt-get -y install haproxy
+sudo sed -i 's/^ENABLED=0/ENABLED=1/' /etc/default/haproxy
+sudo tee /etc/haproxy/haproxy.cfg > /dev/null <<CONF
+global
+0-custom_http_response_header log /dev/log local0
+0-custom_http_response_header maxconn 2048
+0-custom_http_response_header user haproxy
+0-custom_http_response_header group haproxy
+0-custom_http_response_header daemon
+
+defaults
+0-custom_http_response_header log global
+0-custom_http_response_header mode http
+0-custom_http_response_header option httplog
+0-custom_http_response_header option dontlognull
+0-custom_http_response_header timeout connect 5000
+0-custom_http_response_header timeout client 50000
+0-custom_http_response_header timeout server 50000
+
+frontend http-in
+0-custom_http_response_header bind *:80
+0-custom_http_response_header default_backend web_servers
+
+backend web_servers
+0-custom_http_response_header balance roundrobin
+0-custom_http_response_header server web-01 ${WEB01_IP}:80 check
+0-custom_http_response_header server web-02 ${WEB02_IP}:80 check
+CONF
+sudo service haproxy restart
